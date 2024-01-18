@@ -35,7 +35,7 @@ void receiveFile(int clientSocket, const std::string& filename) {
 
         char buffer[BUFFER_SIZE]; // create a buffer of size 1KB
         while (fileSize > 0) { // while the file size is greater than 0
-            bytesRead = recv(clientSocket, buffer, std::min(sizeof(buffer), static_cast<size_t>(fileSize)), 0); // receive the file content
+            bytesRead = recv(clientSocket, buffer, std::min(sizeof(buffer), static_cast<size_t>(fileSize)), 0); // receive the file content, min() is used to avoid buffer overflow and static_cast is used to convert fileSize to size_t
 
             if (bytesRead <= 0) { // if the file content is not received correctly
                 std::cerr << "Error receiving file content for: " << filename << std::endl;
@@ -98,7 +98,7 @@ int main() {
 
     // setup server address structure
     serverAddr.sin_family = AF_INET; // set the address family to IPv4
-    serverAddr.sin_addr.s_addr = INADDR_ANY; // set the IP address to the localhost
+    serverAddr.sin_addr.s_addr = INADDR_ANY; // set the IP address to the localhost, INADDR_ANY allows to bind to any address
     serverAddr.sin_port = htons(PORT); // set the port number
 
     // binding the socket
@@ -117,7 +117,7 @@ int main() {
 
     std::cout << "Server listening on port " << PORT << std::endl;
 
-       while (true) {
+    while (true) {
         clientSocket = accept(serverSocket, (struct sockaddr*)&clientAddr, &addrLen); // accept the connection from the client
         if (clientSocket == -1) { // check if connection is not accepted
             std::cerr << "Error accepting connection" << std::endl;
