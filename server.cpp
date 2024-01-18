@@ -1,12 +1,12 @@
 #include <iostream>
 #include <fstream>
 #include <cstring>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <dirent.h>
-#include <sys/stat.h>
-#include <arpa/inet.h>
+#include <unistd.h> // for sleep()
+#include <sys/socket.h>//  for socket(), bind(), listen(), accept(), send(), recv()
+#include <netinet/in.h> // for sockaddr_in structure
+#include <dirent.h> // for opendir(), readdir(), closedir()
+#include <sys/stat.h> // for stat()
+#include <arpa/inet.h> // for inet_ntop()
 
 #define PORT 8080 // define the port
 #define BUFFER_SIZE 1024 // define the buffer size (1KB)
@@ -125,8 +125,8 @@ int main() {
             exit(EXIT_FAILURE);
         }
 
-        char clientIP[INET_ADDRSTRLEN]; // create a buffer to store the client IP address
-        inet_ntop(AF_INET, &(clientAddr.sin_addr), clientIP, INET_ADDRSTRLEN); // convert the client IP address to a string
+        char clientIP[INET_ADDRSTRLEN]; // create a buffer to store the client IP address, inet_addrstrlen is the maximum length of the IP address
+        inet_ntop(AF_INET, &(clientAddr.sin_addr), clientIP, INET_ADDRSTRLEN); // convert the client IP address to a string, sin_addr is the IP address in the client address structure
         std::cout << "Connection accepted from " << clientIP << ":" << ntohs(clientAddr.sin_port) << std::endl; // ntohs() converts the port number to host byte order
 
 

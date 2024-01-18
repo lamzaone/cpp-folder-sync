@@ -1,12 +1,12 @@
 #include <iostream>
 #include <fstream>
 #include <cstring>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <dirent.h>
-#include <sys/stat.h>
-#include <arpa/inet.h>
+#include <unistd.h> // for sleep()
+#include <sys/socket.h> // for socket(), connect(), send(), recv()
+#include <netinet/in.h> // for sockaddr_in structure
+#include <dirent.h> // for opendir(), readdir(), closedir()
+#include <sys/stat.h> // for stat() 
+#include <arpa/inet.h> // for inet_addr()
 
 #define PORT 8080 // define the port
 #define BUFFER_SIZE 1024 // define the buffer size (1KB)
