@@ -11,7 +11,7 @@
 #define PORT 8080 // define the port
 #define BUFFER_SIZE 1024 // define the buffer size (1KB)
 #define CLIENT_FOLDER "./" // select cwd as the client folder
-#define SYNC_INTERVAL 30 // define the sync interval
+#define SYNC_INTERVAL 10 // define the sync interval
 
 bool fileExists(const std::string& filename) { // check if the file exists
     struct stat buffer; 
@@ -23,8 +23,8 @@ void sendFile(int serverSocket, const std::string& filename) {
 
     if (file.is_open()) { // if the file is open
 
-        file.seekg(0, std::ios::end); // seek to the end of the file
-        std::streampos fileSize = file.tellg(); // get the current position of the file pointer to get the file size
+        file.seekg(0, std::ios::end); // set the file pointer to the end of the file
+        std::streampos fileSize = file.tellg(); // get the current position of the file pointer to get the file size by subtracting the beginning of the file pointer from the end of the file pointer
         file.seekg(0, std::ios::beg); // seek back to the beginning of the file
 
         send(serverSocket, reinterpret_cast<char*>(&fileSize), sizeof(fileSize), 0); // send the file size to the server
@@ -32,7 +32,7 @@ void sendFile(int serverSocket, const std::string& filename) {
         char buffer[BUFFER_SIZE]; 
         while (!file.eof()) { // while the end of the file is not reached
             file.read(buffer, sizeof(buffer)); // read the file content into the buffer 
-            send(serverSocket, buffer, file.gcount(), 0);  // send the file content to the server in chunks
+            send(serverSocket, buffer, file.gcount(), 0);  // send the file content to the server in chunks, gcount() returns the number of characters extracted by the last unformatted input operation
         }
 
         file.close();

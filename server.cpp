@@ -11,7 +11,7 @@
 #define PORT 8080 // define the port
 #define BUFFER_SIZE 1024 // define the buffer size (1KB)
 #define SERVER_FOLDER "./" // select cwd as the server folder
-#define SYNC_INTERVAL 30 // define the sync interval
+#define SYNC_INTERVAL 10 // define the sync interval
 
 bool fileExists(const std::string& filename) {  // check if the file exists
     struct stat buffer; 
@@ -24,7 +24,7 @@ void receiveFile(int clientSocket, const std::string& filename) {
     if (file.is_open()) {   // if the file is open
         // Receive file size
         std::streampos fileSize; // streampos is a type that represents the current position of the file pointer
-        int bytesRead = recv(clientSocket, reinterpret_cast<char*>(&fileSize), sizeof(fileSize), 0); // receive the file size
+        int bytesRead = recv(clientSocket, reinterpret_cast<char*>(&fileSize), sizeof(fileSize), 0); // receive the number of bytes in the file from the client (reinterpret_cast is used to convert fileSize to char*)
 
         if (bytesRead != sizeof(fileSize)) {
             std::cerr << "Error receiving file size for: " << filename << std::endl; // if the file size is not received correctly
