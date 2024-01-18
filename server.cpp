@@ -109,7 +109,7 @@ int main() {
     }
 
     // listen for incoming connections
-    if (listen(serverSocket, 5) == -1) {
+    if (listen(serverSocket, 5) == -1) { // 5 is the maximum size of the queue, if listen() returns -1, it means that the queue is full or the socket is not listening
         std::cerr << "Error listening for connections" << std::endl;
         close(serverSocket);
         exit(EXIT_FAILURE);

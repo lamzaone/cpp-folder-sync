@@ -82,7 +82,7 @@ int main() {
     
     int clientSocket; // define the client socket
     struct sockaddr_in serverAddr; // define the server address structure
-    clientSocket = socket(AF_INET, SOCK_STREAM, 0); // create a TCP socket
+    clientSocket = socket(AF_INET, SOCK_STREAM, 0); // create a TCP socket, AF_INET for IPv4, SOCK_STREAM for TCP, 0 for the protocol
 
     // check if the socket was created successfully
     if (clientSocket == -1) { 
