@@ -8,72 +8,68 @@
 #include <sys/stat.h>
 #include <arpa/inet.h>
 
-#define PORT 8080
-#define BUFFER_SIZE 1024
-#define CLIENT_FOLDER "./"
-#define SYNC_INTERVAL 30
+#define PORT 8080 // define the port
+#define BUFFER_SIZE 1024 // define the buffer size (1KB)
+#define CLIENT_FOLDER "./" // select cwd as the client folder
+#define SYNC_INTERVAL 30 // define the sync interval
 
-bool fileExists(const std::string& filename) {
-    struct stat buffer;
-    return (stat(filename.c_str(), &buffer) == 0);
+bool fileExists(const std::string& filename) { // check if the file exists
+    struct stat buffer; 
+    return (stat(filename.c_str(), &buffer) == 0); 
 }
 
 void sendFile(int serverSocket, const std::string& filename) {
-    std::ifstream file(CLIENT_FOLDER + filename, std::ios::binary);
+    std::ifstream file(CLIENT_FOLDER + filename, std::ios::binary); // open the file in binary mode
 
-    if (file.is_open()) {
-        // Send file size
-        file.seekg(0, std::ios::end);
-        std::streampos fileSize = file.tellg();
-        file.seekg(0, std::ios::beg);
+    if (file.is_open()) { // if the file is open
 
-        send(serverSocket, reinterpret_cast<char*>(&fileSize), sizeof(fileSize), 0);
+        file.seekg(0, std::ios::end); // seek to the end of the file
+        std::streampos fileSize = file.tellg(); // get the current position of the file pointer to get the file size
+        file.seekg(0, std::ios::beg); // seek back to the beginning of the file
 
-        // Send file content
-        char buffer[BUFFER_SIZE];
-        while (!file.eof()) {
-            file.read(buffer, sizeof(buffer));
-            send(serverSocket, buffer, file.gcount(), 0);
+        send(serverSocket, reinterpret_cast<char*>(&fileSize), sizeof(fileSize), 0); // send the file size to the server
+
+        char buffer[BUFFER_SIZE]; 
+        while (!file.eof()) { // while the end of the file is not reached
+            file.read(buffer, sizeof(buffer)); // read the file content into the buffer 
+            send(serverSocket, buffer, file.gcount(), 0);  // send the file content to the server in chunks
         }
 
         file.close();
 
-        // Wait for acknowledgment from the server
-        char ackBuffer[BUFFER_SIZE];
-        int bytesRead = recv(serverSocket, ackBuffer, sizeof(ackBuffer), 0);
-        if (bytesRead <= 0 || strncmp(ackBuffer, "ACK", 3) != 0) {
+        char ackBuffer[BUFFER_SIZE]; 
+        int bytesRead = recv(serverSocket, ackBuffer, sizeof(ackBuffer), 0); // receive the acknowledgment from the server that the file was received successfully
+        if (bytesRead <= 0 || strncmp(ackBuffer, "success", 7) != 0) { // check if the acknowledgment is not received correctly
             std::cerr << "Error receiving acknowledgment for: " << filename << std::endl;
         }
 
         std::cout << "Sent file: " << filename << std::endl;
     } else {
         std::cerr << "Error opening file: " << filename << std::endl;
-        // Inform the server about the error
         send(serverSocket, nullptr, 0, 0);
     }
 }
 
 void synchronizeFiles(int serverSocket) {
-    DIR* dir;
-    struct dirent* ent;
+    DIR* dir; // pointer to the directory
+    struct dirent* ent; // pointer to the directory entry (file) 
 
-    if ((dir = opendir(CLIENT_FOLDER)) != nullptr) {
-        // Send the list of files in the client folder
-        while ((ent = readdir(dir)) != nullptr) {
-            if ((ent->d_type == DT_REG) && (strcmp(ent->d_name, "client") != 0)) {  // Regular file and not "client"
-                std::string filename(ent->d_name);
-                send(serverSocket, filename.c_str(), filename.size() + 1, 0);
+    if ((dir = opendir(CLIENT_FOLDER)) != nullptr) { // open the client folder and check if it is not null (nullptr)
+        while ((ent = readdir(dir)) != nullptr) { // read the directory entries one by one and check if it is not null (nullptr)
+            if ((ent->d_type == DT_REG) && (strcmp(ent->d_name, "client") != 0)) {  // regular file and not "client"
+                std::string filename(ent->d_name); // get the filename from the directory entry
+                send(serverSocket, filename.c_str(), filename.size() + 1, 0); // send the filename to the server
 
-                // Wait for the server to check if the file needs to be sent
+                // we now wait for the server to tell us if it wants the file or not (SEND or SKIP)
                 char ackBuffer[BUFFER_SIZE];
-                int bytesRead = recv(serverSocket, ackBuffer, sizeof(ackBuffer), 0);
-                if (bytesRead <= 0 || strncmp(ackBuffer, "SEND", 4) == 0) {
-                    sendFile(serverSocket, filename);
+                int bytesRead = recv(serverSocket, ackBuffer, sizeof(ackBuffer), 0); // receive the acknowledgment from the server
+                if (bytesRead <= 0 || strncmp(ackBuffer, "SEND", 4) == 0) { // check if the acknowledgment is not received correctly or if the server wants the file
+                    sendFile(serverSocket, filename); // send the file to the server
                 }
             }
         }
 
-        // Signal the end of the file list
+        // after sending all the files, send an empty message to the server to tell that the file list is complete
         send(serverSocket, nullptr, 0, 0);
 
         closedir(dir);
@@ -83,22 +79,23 @@ void synchronizeFiles(int serverSocket) {
 }
 
 int main() {
-    int clientSocket;
-    struct sockaddr_in serverAddr;
+    
+    int clientSocket; // define the client socket
+    struct sockaddr_in serverAddr; // define the server address structure
+    clientSocket = socket(AF_INET, SOCK_STREAM, 0); // create a TCP socket
 
-    // Create socket
-    clientSocket = socket(AF_INET, SOCK_STREAM, 0);
-    if (clientSocket == -1) {
+    // check if the socket was created successfully
+    if (clientSocket == -1) { 
         std::cerr << "Error creating socket" << std::endl;
         exit(EXIT_FAILURE);
     }
 
-    // Setup server address structure
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_addr.s_addr = inet_addr("127.0.0.1"); // Replace with the server's IP address
-    serverAddr.sin_port = htons(PORT);
+    // set the server address structure
+    serverAddr.sin_family = AF_INET; // set the address family to IPv4
+    serverAddr.sin_addr.s_addr = inet_addr("127.0.0.1"); // set the IP address to localhost
+    serverAddr.sin_port = htons(PORT); // set the port number to the one defined above
 
-    // Connect to the server
+    // connect to the server
     if (connect(clientSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == -1) {
         std::cerr << "Error connecting to server" << std::endl;
         close(clientSocket);
@@ -107,13 +104,10 @@ int main() {
 
     std::cout << "Connected to server" << std::endl;
 
-    while (true) {
-        // Synchronize files with the server
-        synchronizeFiles(clientSocket);
-
-        // Sleep for SYNC_INTERVAL seconds before the next synchronization
+    while (true) { 
+        synchronizeFiles(clientSocket); // synchronize the files
         std::cout << "Waiting for the next synchronization in " << SYNC_INTERVAL << " seconds..." << std::endl;
-        sleep(SYNC_INTERVAL);
+        sleep(SYNC_INTERVAL); // sleepzZz for SYNC_INTERVAL seconds
     }
 
     // Close the client socket
