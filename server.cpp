@@ -93,9 +93,9 @@ void synchronizeFiles(int clientSocket) { // synchronize the files
 
         if (!fileExists(SERVER_FOLDER + filename) || lastModifiedTime > getFileLastModifiedTime(SERVER_FOLDER + filename)) {
             send(clientSocket, "SEND", 4, 0); // send the message to the client to send the file
+            if (fileExists(SERVER_FOLDER + filename)) std::cout<<"[UPDATED]";
             receiveFile(clientSocket, filename); // receive the file from the client
         } else {
-            // TODO: Check if the file on the client side is newer than the one on the server side
             send(clientSocket, "SKIP", 4, 0); // send the message to the client to skip the file if the file already exists
         }
     }
