@@ -84,6 +84,11 @@ void synchronizeFiles(int clientSocket) { // synchronize the files
         // reset buffer
         std::memset(buffer, 0, sizeof(buffer)); // reset the buffer
         bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0); // receive the last modified time from the client
+        if (bytesRead != sizeof(lastModifiedTime)) {
+            std::cerr << "Error receiving last modified time for: " << filename << std::endl;
+            continue; // continue to the next file
+        }
+        
         std::memcpy(&lastModifiedTime, buffer, sizeof(lastModifiedTime)); // copy the last modified time from the buffer to the variable
 
         if (!fileExists(SERVER_FOLDER + filename) || lastModifiedTime > getFileLastModifiedTime(SERVER_FOLDER + filename)) {
