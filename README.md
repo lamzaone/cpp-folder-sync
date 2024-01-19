@@ -1,8 +1,12 @@
-﻿# c++ folder-sync
-Sync the files from the client directory to the server directory.
+﻿# c++ remote directory sync
+Sync the files between a local directory and a remote directory.
 
-currently only sends the files from one place to another over the established network connection.
-todos: add deletion, ~~update files~~
+Currently can upload new files, and update existing ones.
+
+
+# todos: 
+- add deletion 
+- ~~update files~~
 
 compile:
 ```
