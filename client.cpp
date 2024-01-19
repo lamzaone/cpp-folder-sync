@@ -18,6 +18,12 @@ bool fileExists(const std::string& filename) { // check if the file exists
     return (stat(filename.c_str(), &buffer) == 0); 
 }
 
+time_t getFileLastModifiedTime(const std::string& filename) { // get the last modified time of the file
+    struct stat buffer;
+    stat(filename.c_str(), &buffer);
+    return buffer.st_mtime;
+}
+
 void sendFile(int serverSocket, const std::string& filename) {
     std::ifstream file(CLIENT_FOLDER + filename, std::ios::binary); // open the file in binary mode
 
@@ -60,6 +66,8 @@ void synchronizeFiles(int serverSocket) {
                 std::string filename(ent->d_name); // get the filename from the directory entry
                 send(serverSocket, filename.c_str(), filename.size() + 1, 0); // send the filename to the server
 
+                time_t lastModifiedTime = getFileLastModifiedTime(CLIENT_FOLDER + filename); // get the last modified time of the file
+                send(serverSocket, reinterpret_cast<char*>(&lastModifiedTime), sizeof(lastModifiedTime), 0); // send the last modified time of the file to the server
                 // we now wait for the server to tell us if it wants the file or not (SEND or SKIP)
                 char ackBuffer[BUFFER_SIZE];
                 int bytesRead = recv(serverSocket, ackBuffer, sizeof(ackBuffer), 0); // receive the acknowledgment from the server
