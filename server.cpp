@@ -18,6 +18,12 @@ bool fileExists(const std::string& filename) {  // check if the file exists
     return (stat(filename.c_str(), &buffer) == 0); // stat() returns 0 if the file exists
 }
 
+time_t getFileLastModifiedTime(const std::string& filename) { // get the last modified time of the file
+    struct stat buffer;
+    stat(filename.c_str(), &buffer);
+    return buffer.st_mtime;
+}
+
 void receiveFile(int clientSocket, const std::string& filename) {
     std::ofstream file(SERVER_FOLDER + filename, std::ios::binary); // open the file in binary mode
 
@@ -73,8 +79,19 @@ void synchronizeFiles(int clientSocket) { // synchronize the files
 
         std::string filename(buffer); // convert the buffer to a string to get the file name 
 
+        // Receive last modified time from the client
+        time_t lastModifiedTime; // create a variable to store the last modified time
+        // reset buffer
+        std::memset(buffer, 0, sizeof(buffer)); // reset the buffer
+        bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0); // receive the last modified time from the client
+        if (bytesRead != sizeof(lastModifiedTime)) {
+            std::cerr << "Error receiving last modified time for: " << filename << std::endl;
+            continue; // continue to the next file
+        }
+        
+        std::memcpy(&lastModifiedTime, buffer, sizeof(lastModifiedTime)); // copy the last modified time from the buffer to the variable
 
-        if (!fileExists(SERVER_FOLDER + filename)) {
+        if (!fileExists(SERVER_FOLDER + filename) || lastModifiedTime > getFileLastModifiedTime(SERVER_FOLDER + filename)) {
             send(clientSocket, "SEND", 4, 0); // send the message to the client to send the file
             receiveFile(clientSocket, filename); // receive the file from the client
         } else {
