@@ -21,9 +21,9 @@ bool fileExists(const std::string& filename) {  // check if the file exists
 }
 
 time_t getFileLastModifiedTime(const std::string& filename) { // get the last modified time of the file
-    struct stat buffer;
-    stat(filename.c_str(), &buffer);
-    return buffer.st_mtime;
+    struct stat buffer; // create a buffer to store the file information
+    stat(filename.c_str(), &buffer); // get the file information and store it in the buffer
+    return buffer.st_mtime; // return the last modified time
 }
 
 void receiveFile(int clientSocket, const std::string& filename) {
@@ -74,7 +74,7 @@ void synchronizeFiles(int clientSocket) { // synchronize the files
     std::vector<std::string> files; // vector to store received filenames from local directory
 
     // create changelog if it doesn't exist
-    std::ofstream changelog(SERVER_FOLDER "changelog.txt", std::ios::app); // Modify the file path to use the SERVER_FOLDER macro
+    std::ofstream changelog(SERVER_FOLDER "changelog.txt", std::ios::app); // open the changelog file in append mode (to append new logs to the end of the file)
     if (!changelog.is_open()) {
         std::cerr << "Error opening changelog file" << std::endl;
         return;
@@ -92,13 +92,13 @@ void synchronizeFiles(int clientSocket) { // synchronize the files
             break;  // End of file list
         }
         std::string filename(buffer); // convert the buffer to a string to get the file name 
-        files.push_back(filename);
+        files.push_back(filename); // add the file name to the vector of files to compare later on the server side (to delete files that are no longer existing on client side)
         send(clientSocket, "OK", 2, 0); // send the acknowledgment to the client that the file name was received successfully
 
         time_t lastModifiedTime; // create a variable to store the last modified time
         std::memset(buffer, 0, sizeof(buffer)); // reset the buffer
         bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0); // receive the last modified time from the client
-        if (bytesRead != sizeof(lastModifiedTime)) {
+        if (bytesRead != sizeof(lastModifiedTime)) { // if the last modified time is not received correctly
             std::cerr << "Error receiving last modified time for: " << filename << std::endl;
             continue; // continue to the next file
         }
@@ -113,12 +113,14 @@ void synchronizeFiles(int clientSocket) { // synchronize the files
             if (existing){ // if the file already existed before receiving, we log an update
                 changelog << now << " [UPDATED] "<< filename << " from " << getFileLastModifiedTime(SERVER_FOLDER + filename) << " to " << lastModifiedTime << std::endl;
             } else {
-                changelog << now << " RECEIVED "<< filename << std::endl;
+                changelog << now << " RECEIVED "<< filename << std::endl; // if the file didn't exist before receiving, we log a receive
             }
 
         } else {
             send(clientSocket, "SKIP", 4, 0); // send the message to the client to skip the file if the file already exists
         }
+
+        changelog.close(); // close the changelog file
     }
 
     // compare client names to files on remote directory, to delete files that are no longer existing on client side
