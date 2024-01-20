@@ -65,12 +65,17 @@ void synchronizeFiles(int serverSocket) {
             if ((ent->d_type == DT_REG) && (strcmp(ent->d_name, "client") != 0)) {  // regular file and not "client"
                 std::string filename(ent->d_name); // get the filename from the directory entry
                 send(serverSocket, filename.c_str(), filename.size() + 1, 0); // send the filename to the server
-
+                char buffer[BUFFER_SIZE];
+                int bytesRead = recv(serverSocket, buffer, sizeof(buffer), 0); // receive the acknowledgment from the server
+                if (bytesRead <= 0 || strncmp(buffer, "OK", 2) != 0) { // check if the acknowledgment is not received correctly
+                    std::cerr << "Error receiving acknowledgment for: " << filename << std::endl;
+                    continue;
+                }
                 time_t lastModifiedTime = getFileLastModifiedTime(CLIENT_FOLDER + filename); // get the last modified time of the file
                 send(serverSocket, reinterpret_cast<char*>(&lastModifiedTime), sizeof(lastModifiedTime), 0); // send the last modified time of the file to the server
                 // we now wait for the server to tell us if it wants the file or not (SEND or SKIP)
                 char ackBuffer[BUFFER_SIZE];
-                int bytesRead = recv(serverSocket, ackBuffer, sizeof(ackBuffer), 0); // receive the acknowledgment from the server
+                bytesRead = recv(serverSocket, ackBuffer, sizeof(ackBuffer), 0); // receive the acknowledgment from the server
                 if (bytesRead <= 0 || strncmp(ackBuffer, "SEND", 4) == 0) { // check if the acknowledgment is not received correctly or if the server wants the file
                     sendFile(serverSocket, filename); // send the file to the server
                 }

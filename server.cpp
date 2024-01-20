@@ -76,12 +76,10 @@ void synchronizeFiles(int clientSocket) { // synchronize the files
         if (bytesRead <= 0 || strncmp(buffer, "OVR", 3) == 0) {
             break;  // End of file list
         }
-
         std::string filename(buffer); // convert the buffer to a string to get the file name 
+        send(clientSocket, "OK", 2, 0); // send the acknowledgment to the client that the file name was received successfully
 
-        // Receive last modified time from the client
         time_t lastModifiedTime; // create a variable to store the last modified time
-        // reset buffer
         std::memset(buffer, 0, sizeof(buffer)); // reset the buffer
         bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0); // receive the last modified time from the client
         if (bytesRead != sizeof(lastModifiedTime)) {
