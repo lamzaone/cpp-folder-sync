@@ -18,6 +18,12 @@ bool fileExists(const std::string& filename) { // check if the file exists
     return (stat(filename.c_str(), &buffer) == 0); 
 }
 
+time_t getFileLastModifiedTime(const std::string& filename) { // get the last modified time of the file
+    struct stat buffer;
+    stat(filename.c_str(), &buffer);
+    return buffer.st_mtime;
+}
+
 void sendFile(int serverSocket, const std::string& filename) {
     std::ifstream file(CLIENT_FOLDER + filename, std::ios::binary); // open the file in binary mode
 
@@ -59,10 +65,17 @@ void synchronizeFiles(int serverSocket) {
             if ((ent->d_type == DT_REG) && (strcmp(ent->d_name, "client") != 0)) {  // regular file and not "client"
                 std::string filename(ent->d_name); // get the filename from the directory entry
                 send(serverSocket, filename.c_str(), filename.size() + 1, 0); // send the filename to the server
-
+                char okBuffer[BUFFER_SIZE]; // create a buffer of size 1KB
+                int bytesRead = recv(serverSocket, okBuffer, sizeof(okBuffer), 0); // receive the acknowledgment from the server
+                if (bytesRead <= 0 || strncmp(okBuffer, "OK", 2) != 0) { // check if the acknowledgment is not received correctly
+                    std::cerr << "Error receiving acknowledgment for: " << filename << std::endl;
+                    continue;
+                }
+                time_t lastModifiedTime = getFileLastModifiedTime(CLIENT_FOLDER + filename); // get the last modified time of the file
+                send(serverSocket, reinterpret_cast<char*>(&lastModifiedTime), sizeof(lastModifiedTime), 0); // send the last modified time of the file to the server
                 // we now wait for the server to tell us if it wants the file or not (SEND or SKIP)
                 char ackBuffer[BUFFER_SIZE];
-                int bytesRead = recv(serverSocket, ackBuffer, sizeof(ackBuffer), 0); // receive the acknowledgment from the server
+                bytesRead = recv(serverSocket, ackBuffer, sizeof(ackBuffer), 0); // receive the acknowledgment from the server
                 if (bytesRead <= 0 || strncmp(ackBuffer, "SEND", 4) == 0) { // check if the acknowledgment is not received correctly or if the server wants the file
                     sendFile(serverSocket, filename); // send the file to the server
                 }
@@ -70,7 +83,7 @@ void synchronizeFiles(int serverSocket) {
         }
 
         // after sending all the files, send an empty message to the server to tell that the file list is complete
-        send(serverSocket, nullptr, 0, 0);
+        send(serverSocket, "OVR", 3, 0);
 
         closedir(dir);
     } else {
