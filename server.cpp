@@ -69,10 +69,12 @@ void receiveFile(int clientSocket, const std::string& filename) {
 }
 
 void synchronizeFiles(int clientSocket) { // synchronize the files
+    #include <fstream> // Add missing include directive for the <fstream> library
+
     std::vector<std::string> files; // vector to store received filenames from local directory
 
-        // create changelog if it doesn't exist
-    std::ofstream changelog(SERVER_FOLDER + "changelog.txt", std::ios::app); // open the changelog file in append mode
+    // create changelog if it doesn't exist
+    std::ofstream changelog(SERVER_FOLDER "changelog.txt", std::ios::app); // Modify the file path to use the SERVER_FOLDER macro
     if (!changelog.is_open()) {
         std::cerr << "Error opening changelog file" << std::endl;
         return;
@@ -104,9 +106,16 @@ void synchronizeFiles(int clientSocket) { // synchronize the files
         std::memcpy(&lastModifiedTime, buffer, sizeof(lastModifiedTime)); // copy the last modified time from the buffer to the variable
 
         if (!fileExists(SERVER_FOLDER + filename) || lastModifiedTime > getFileLastModifiedTime(SERVER_FOLDER + filename)) {
+            bool existing = fileExists(SERVER_FOLDER + filename); // check if the file already exists before receiving it, to know if we need to log an update or a receive
             send(clientSocket, "SEND", 4, 0); // send the message to the client to send the file
-            if (fileExists(SERVER_FOLDER + filename)) std::cout<<"[UPDATED]";
             receiveFile(clientSocket, filename); // receive the file from the client
+            time_t now = time(0); // get the current time to log it
+            if (existing){ // if the file already existed before receiving, we log an update
+                changelog << now << " [UPDATED] "<< filename << " from " << getFileLastModifiedTime(SERVER_FOLDER + filename) << " to " << lastModifiedTime << std::endl;
+            } else {
+                changelog << now << " RECEIVED "<< filename << std::endl;
+            }
+
         } else {
             send(clientSocket, "SKIP", 4, 0); // send the message to the client to skip the file if the file already exists
         }
@@ -118,10 +127,12 @@ void synchronizeFiles(int clientSocket) { // synchronize the files
     // check all files in server directory to see if they are in the vector, if not, we delete
     if ((dir = opendir(SERVER_FOLDER)) != nullptr) { // open the server folder and check if it is not null (nullptr)
         while ((ent = readdir(dir)) != nullptr) { // read the directory entries one by one and check if it is not null (nullptr)
-            if ((ent->d_type == DT_REG) && (strcmp(ent->d_name, "server") != 0)) {  // regular file and not "server"
+            if ((ent->d_type == DT_REG) && (strcmp(ent->d_name, "server") != 0) && (strcmp(ent->d_name, "changelog.txt") != 0)) {  // regular file and not "server" or "changelog.txt"
                 std::string filename(ent->d_name); // get the filename from the directory entry
                 if (std::find(files.begin(), files.end(), filename) == files.end()) { // if the file is not found in the vector
-                    std::cout << "[DELETED] " << filename << std::endl;
+                    time_t now = time(0);
+                    changelog << now <<  " [DELETED] " << filename << std::endl;
+                    std::cout << now <<  " [DELETED] " << filename << std::endl;
                     remove((SERVER_FOLDER + filename).c_str()); // delete the file
                 }
             }
