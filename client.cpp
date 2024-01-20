@@ -65,9 +65,9 @@ void synchronizeFiles(int serverSocket) {
             if ((ent->d_type == DT_REG) && (strcmp(ent->d_name, "client") != 0)) {  // regular file and not "client"
                 std::string filename(ent->d_name); // get the filename from the directory entry
                 send(serverSocket, filename.c_str(), filename.size() + 1, 0); // send the filename to the server
-                char buffer[BUFFER_SIZE];
-                int bytesRead = recv(serverSocket, buffer, sizeof(buffer), 0); // receive the acknowledgment from the server
-                if (bytesRead <= 0 || strncmp(buffer, "OK", 2) != 0) { // check if the acknowledgment is not received correctly
+                char okBuffer[BUFFER_SIZE]; // create a buffer of size 1KB
+                int bytesRead = recv(serverSocket, okBuffer, sizeof(okBuffer), 0); // receive the acknowledgment from the server
+                if (bytesRead <= 0 || strncmp(okBuffer, "OK", 2) != 0) { // check if the acknowledgment is not received correctly
                     std::cerr << "Error receiving acknowledgment for: " << filename << std::endl;
                     continue;
                 }

@@ -7,6 +7,8 @@
 #include <dirent.h> // for opendir(), readdir(), closedir()
 #include <sys/stat.h> // for stat()
 #include <arpa/inet.h> // for inet_ntop()
+#include <algorithm>
+#include <vector>
 
 #define PORT 8080 // define the port
 #define BUFFER_SIZE 1024 // define the buffer size (1KB)
@@ -67,6 +69,9 @@ void receiveFile(int clientSocket, const std::string& filename) {
 }
 
 void synchronizeFiles(int clientSocket) { // synchronize the files
+    std::vector<std::string> files; // vector to store received filenames from local directory
+
+    // Receive missing files and update existing ones
     while (true) { 
         // Receive file name from the client
         char buffer[BUFFER_SIZE]; // create a buffer of size 1KB
@@ -77,6 +82,7 @@ void synchronizeFiles(int clientSocket) { // synchronize the files
             break;  // End of file list
         }
         std::string filename(buffer); // convert the buffer to a string to get the file name 
+        files.push_back(filename);
         send(clientSocket, "OK", 2, 0); // send the acknowledgment to the client that the file name was received successfully
 
         time_t lastModifiedTime; // create a variable to store the last modified time
@@ -96,6 +102,25 @@ void synchronizeFiles(int clientSocket) { // synchronize the files
         } else {
             send(clientSocket, "SKIP", 4, 0); // send the message to the client to skip the file if the file already exists
         }
+    }
+
+    // compare client names to files on remote directory, to delete files that are no longer existing on client side
+    DIR* dir; // pointer to the directory
+    struct dirent* ent; // pointer to the directory entry (file)
+    // check all files in server directory to see if they are in the vector, if not, we delete
+    if ((dir = opendir(SERVER_FOLDER)) != nullptr) { // open the server folder and check if it is not null (nullptr)
+        while ((ent = readdir(dir)) != nullptr) { // read the directory entries one by one and check if it is not null (nullptr)
+            if ((ent->d_type == DT_REG) && (strcmp(ent->d_name, "server") != 0)) {  // regular file and not "server"
+                std::string filename(ent->d_name); // get the filename from the directory entry
+                if (std::find(files.begin(), files.end(), filename) == files.end()) { // if the file is not found in the vector
+                    std::cout << "[DELETED] " << filename << std::endl;
+                    remove((SERVER_FOLDER + filename).c_str()); // delete the file
+                }
+            }
+        }
+        closedir(dir);
+    } else {
+        std::cerr << "Error opening server folder: " << SERVER_FOLDER << std::endl;
     }
 }
 
