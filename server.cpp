@@ -71,6 +71,14 @@ void receiveFile(int clientSocket, const std::string& filename) {
 void synchronizeFiles(int clientSocket) { // synchronize the files
     std::vector<std::string> files; // vector to store received filenames from local directory
 
+        // create changelog if it doesn't exist
+    std::ofstream changelog(SERVER_FOLDER + "changelog.txt", std::ios::app); // open the changelog file in append mode
+    if (!changelog.is_open()) {
+        std::cerr << "Error opening changelog file" << std::endl;
+        return;
+    }
+
+
     // Receive missing files and update existing ones
     while (true) { 
         // Receive file name from the client
