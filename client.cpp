@@ -78,7 +78,7 @@ void synchronizeFiles(int serverSocket) {
         }
 
         // after sending all the files, send an empty message to the server to tell that the file list is complete
-        send(serverSocket, nullptr, 0, 0);
+        send(serverSocket, "OVR", 3, 0);
 
         closedir(dir);
     } else {

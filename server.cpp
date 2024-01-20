@@ -73,7 +73,7 @@ void synchronizeFiles(int clientSocket) { // synchronize the files
         int bytesRead = recv(clientSocket, buffer, sizeof(buffer), 0); // receive the file name from the client
 
         // if the file name is not received correctly or the buffer is empty (end of file list)
-        if (bytesRead <= 0 || buffer[0] == '\0') {
+        if (bytesRead <= 0 || strncmp(buffer, "OVR", 3) == 0) {
             break;  // End of file list
         }
 
@@ -133,29 +133,27 @@ int main() {
     }
 
     std::cout << "Server listening on port " << PORT << std::endl;
+    clientSocket = accept(serverSocket, (struct sockaddr*)&clientAddr, &addrLen); // accept the connection from the client
+    if (clientSocket == -1) { // check if connection is not accepted
+        std::cerr << "Error accepting connection" << std::endl;
+        close(serverSocket);
+        exit(EXIT_FAILURE);
+    }
+
+    char clientIP[INET_ADDRSTRLEN]; // create a buffer to store the client IP address, inet_addrstrlen is the maximum length of the IP address
+    inet_ntop(AF_INET, &(clientAddr.sin_addr), clientIP, INET_ADDRSTRLEN); // convert the client IP address to a string, sin_addr is the IP address in the client address structure
+    std::cout << "Connection accepted from " << clientIP << ":" << ntohs(clientAddr.sin_port) << std::endl; // ntohs() converts the port number to host byte order
 
     while (true) {
-        clientSocket = accept(serverSocket, (struct sockaddr*)&clientAddr, &addrLen); // accept the connection from the client
-        if (clientSocket == -1) { // check if connection is not accepted
-            std::cerr << "Error accepting connection" << std::endl;
-            close(serverSocket);
-            exit(EXIT_FAILURE);
-        }
-
-        char clientIP[INET_ADDRSTRLEN]; // create a buffer to store the client IP address, inet_addrstrlen is the maximum length of the IP address
-        inet_ntop(AF_INET, &(clientAddr.sin_addr), clientIP, INET_ADDRSTRLEN); // convert the client IP address to a string, sin_addr is the IP address in the client address structure
-        std::cout << "Connection accepted from " << clientIP << ":" << ntohs(clientAddr.sin_port) << std::endl; // ntohs() converts the port number to host byte order
-
-
         synchronizeFiles(clientSocket); // synchronize the files
 
-
-        close(clientSocket); // close the client socket
 
         // Sleep for SYNC_INTERVAL seconds before the next synchronization
         std::cout << "Waiting for the next synchronization in " << SYNC_INTERVAL << " seconds..." << std::endl;
         sleep(SYNC_INTERVAL);
     }
+
+    close(clientSocket);
 
     // Close the server socket
     close(serverSocket);
