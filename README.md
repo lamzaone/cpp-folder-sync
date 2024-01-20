@@ -7,6 +7,7 @@ Currently can upload new files, and update existing ones, and delete files from 
 # todos: 
 - ~~add deletion~~
 - ~~update files~~
+- ~~changelog.txt~~
 
 compile:
 ```
