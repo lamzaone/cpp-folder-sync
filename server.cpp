@@ -7,8 +7,10 @@
 #include <dirent.h> // for opendir(), readdir(), closedir()
 #include <sys/stat.h> // for stat()
 #include <arpa/inet.h> // for inet_ntop()
-#include <algorithm>
-#include <vector>
+#include <algorithm> // for std::find()
+#include <vector> // for std::vector
+#include <fstream>  // for std::ofstream
+#include <ctime>  
 
 #define PORT 8080 // define the port
 #define BUFFER_SIZE 1024 // define the buffer size (1KB)
@@ -69,8 +71,6 @@ void receiveFile(int clientSocket, const std::string& filename) {
 }
 
 void synchronizeFiles(int clientSocket) { // synchronize the files
-    #include <fstream> // Add missing include directive for the <fstream> library
-
     std::vector<std::string> files; // vector to store received filenames from local directory
 
     // create changelog if it doesn't exist
