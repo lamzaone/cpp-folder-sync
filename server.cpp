@@ -70,11 +70,10 @@ void receiveFile(int clientSocket, const std::string& filename) {
     }
 }
 
-void synchronizeFiles(int clientSocket) { // synchronize the files
-    std::vector<std::string> files; // vector to store received filenames from local directory
+void synchronizeFiles(int clientSocket) {
 
-    // create changelog if it doesn't exist
-
+    // vector to store received filenames from local directory
+    std::vector<std::string> files;
 
     // Receive missing files and update existing ones
     while (true) { 
